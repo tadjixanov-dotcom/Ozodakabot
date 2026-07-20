@@ -1,0 +1,25 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # SQLite faylini volume ichida saqlaymiz — konteyner qayta yaratilsa ham ma'lumot yo'qolmaydi
+      DATABASE_URL: sqlite+aiosqlite:////app/data/news_bot.db
+    volumes:
+      - ./data:/app/data
+
+  # PostgreSQL'ga o'tish uchun quyidagilarni oching va
+  # DATABASE_URL: postgresql+asyncpg://newsbot:newsbot@db:5432/newsbot qilib o'zgartiring
+  # db:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: newsbot
+  #     POSTGRES_PASSWORD: newsbot
+  #     POSTGRES_DB: newsbot
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+
+# volumes:
+#   pgdata:
