@@ -10,7 +10,7 @@ _CALLBACK_RE = re.compile(r"^[a-z_]+(:[A-Za-z0-9_.\-]+){0,3}$")
 
 # Ruxsat etilgan callback prefikslari
 ALLOWED_PREFIXES = {
-    "fb", "less", "save", "mutecat", "cat", "set", "reset", "admin", "src", "noop",
+    "fb", "less", "save", "mutecat", "cat", "set", "reset", "admin", "src", "noop", "next",
 }
 
 

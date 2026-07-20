@@ -1,7 +1,7 @@
 """Yangilik xabari ostidagi tugmalar uchun callback handlerlar."""
 from __future__ import annotations
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from app.database.repositories.articles import get_article
 from app.database.repositories.feedback import save_article, upsert_feedback
 from app.database.repositories.users import get_or_create_user, set_user_category
 from app.recommendations.profile_builder import update_profile_on_feedback
+from app.services.delivery import send_next_article
 
 router = Router(name="callbacks")
 
@@ -86,6 +87,20 @@ async def on_mute_category(query: CallbackQuery, session: AsyncSession) -> None:
     user = await get_or_create_user(session, query.from_user.id, query.from_user.username)
     await set_user_category(session, user, category_id, enabled=False)
     await query.answer("🔕 Kategoriya o'chirildi. Qayta yoqish: /categories")
+
+
+@router.callback_query(F.data.startswith("next:"))
+async def on_next_article(query: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
+    """"➡️ Keyingi yangilik" — navbatdagi eng mos yangilikni yuboradi."""
+    user = await get_or_create_user(session, query.from_user.id, query.from_user.username)
+    sent = await send_next_article(bot, session, user)
+    if sent:
+        await query.answer()
+    else:
+        await query.answer(
+            "📭 Hozircha boshqa yangi yangilik yo'q. Keyinroq urinib ko'ring.",
+            show_alert=False,
+        )
 
 
 @router.callback_query(F.data == "noop")

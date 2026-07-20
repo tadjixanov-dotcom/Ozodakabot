@@ -9,10 +9,12 @@ from app.database.models import Category, DEFAULT_CATEGORIES, User
 
 
 def article_keyboard(article_id: int, category_id: int, url: str) -> InlineKeyboardMarkup:
-    """Yangilik xabari ostidagi tugmalar: baholash + qo'shimcha amallar."""
+    """Yangilik xabari ostidagi tugmalar: baholash + qo'shimcha amallar.
+
+    Havola tugma sifatida emas, xabar matni oxirida beriladi (formatter.py).
+    """
     share_url = f"https://t.me/share/url?url={quote(url, safe='')}"
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔗 Batafsil o'qish", url=url)],
         [
             InlineKeyboardButton(text="👎", callback_data=f"fb:{article_id}:dislike"),
             InlineKeyboardButton(text="😐", callback_data=f"fb:{article_id}:neutral"),
@@ -27,6 +29,7 @@ def article_keyboard(article_id: int, category_id: int, url: str) -> InlineKeybo
             InlineKeyboardButton(text="📌 Saqlash", callback_data=f"save:{article_id}"),
             InlineKeyboardButton(text="📤 Ulashish", url=share_url),
         ],
+        [InlineKeyboardButton(text="➡️ Keyingi yangilik", callback_data="next:1")],
     ])
 
 

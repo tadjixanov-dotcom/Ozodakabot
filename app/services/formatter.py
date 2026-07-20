@@ -47,6 +47,8 @@ def format_article_message(
     )
     if not article.translated_title:
         parts.append("<i>⚠️ Avtomatik tarjimasiz (original til)</i>")
+    # Havola tugma o'rniga matn oxirida
+    parts.append(f"🔗 <a href=\"{escape(article.url, quote=True)}\">Batafsil o'qish</a>")
 
     text = "\n\n".join(parts)
     if len(text) > MAX_MESSAGE_LEN:

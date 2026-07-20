@@ -125,7 +125,11 @@ async def send_article_to_user(
 
 
 async def deliver_realtime(bot: Bot, session_factory: async_sessionmaker) -> None:
-    """Favqulodda muhim yangiliklarni realtime/mixed rejimdagilarga darhol yuboradi."""
+    """Favqulodda muhim yangiliklarni realtime/mixed rejimdagilarga yuboradi.
+
+    Har siklda foydalanuvchiga ko'pi bilan BITTA xabar — qolganlarini
+    "➡️ Keyingi yangilik" tugmasi orqali o'zi so'rab oladi.
+    """
     settings = get_settings()
     async with session_factory() as session:
         users = await get_active_users(session)
@@ -140,10 +144,10 @@ async def deliver_realtime(bot: Bot, session_factory: async_sessionmaker) -> Non
                 if s.article.importance_score >= settings.realtime_importance_threshold
                 or s.critical_override
             ]
-            # realtime rejimda oddiy yangiliklar ham darhol boradi
+            # realtime rejimda oddiy yangiliklar ham boradi, mixed'da faqat favqulodda
             to_send = picked if user.delivery_mode == "realtime" else urgent
-            for scored in to_send:
-                await send_article_to_user(bot, session, user, scored)
+            if to_send:
+                await send_article_to_user(bot, session, user, to_send[0])
                 await asyncio.sleep(0.1)  # global rate limitga hurmat
 
 
@@ -188,14 +192,23 @@ async def deliver_digests(bot: Bot, session_factory: async_sessionmaker) -> None
 
 
 async def send_digest_now(bot: Bot, session: AsyncSession, user: User) -> int:
-    """Foydalanuvchiga darhol dayjest yuboradi. Yuborilgan maqolalar sonini qaytaradi."""
+    """Foydalanuvchiga eng mos BITTA yangilikni yuboradi (qolganini
+    "➡️ Keyingi yangilik" tugmasi bilan o'zi oladi). Yuborilgan sonni qaytaradi."""
     remaining = max(0, user.daily_limit - await count_deliveries_since(session, user.id, 24))
     if remaining == 0:
         return 0
-    picked = await pick_articles_for_user(session, user, limit=min(5, remaining))
-    sent = 0
-    for scored in picked:
-        if await send_article_to_user(bot, session, user, scored):
-            sent += 1
-        await asyncio.sleep(0.15)
-    return sent
+    picked = await pick_articles_for_user(session, user, limit=1)
+    if picked and await send_article_to_user(bot, session, user, picked[0]):
+        return 1
+    return 0
+
+
+async def send_next_article(bot: Bot, session: AsyncSession, user: User) -> bool:
+    """"➡️ Keyingi yangilik" tugmasi uchun: navbatdagi eng mos yangilikni yuboradi.
+
+    Foydalanuvchi o'zi so'ragani uchun jim rejim va limitlar tekshirilmaydi.
+    """
+    picked = await pick_articles_for_user(session, user, limit=1)
+    if not picked:
+        return False
+    return await send_article_to_user(bot, session, user, picked[0])

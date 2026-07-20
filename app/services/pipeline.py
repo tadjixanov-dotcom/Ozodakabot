@@ -19,7 +19,7 @@ from app.news.deduplication.dedup import content_hash, find_similar_title
 from app.news.parsers.cleaner import clean_html, extract_keywords
 from app.news.ranking.importance import compute_importance
 from app.news.summarization.service import summarize_plain
-from app.news.translation.service import BaseTranslator
+from app.news.translation.service import BaseTranslator, NoopTranslator
 
 
 async def _process_item(
@@ -143,3 +143,41 @@ async def collect_and_process(
     if new_ids:
         logger.info("Yig'ish yakunlandi: {} ta yangi maqola", len(new_ids))
     return new_ids
+
+
+async def translate_missing(
+    session_factory: async_sessionmaker, translator: BaseTranslator, limit: int = 15
+) -> int:
+    """Tarjimasiz qolgan maqolalarni tarjima qiladi.
+
+    AI kaliti keyin ulangan yoki vaqtincha ishlamagan bo'lsa, bazadagi eski
+    maqolalar tarjimasiz qoladi — bu funksiya har siklda ularni to'g'irlaydi.
+    """
+    if isinstance(translator, NoopTranslator):
+        return 0
+
+    from sqlalchemy import select
+
+    done = 0
+    async with session_factory() as session:
+        result = await session.execute(
+            select(Article)
+            .where(Article.translated_title.is_(None), Article.is_duplicate.is_(False))
+            .order_by(Article.importance_score.desc(), Article.collected_at.desc())
+            .limit(limit)
+        )
+        articles = list(result.scalars().all())
+        for article in articles:
+            translation = await translator.translate(
+                article.original_title, summarize_plain(article.original_summary or "")
+            )
+            if not translation.translated:
+                break  # AI ishlamayapti — keyingi siklda qayta uriniladi
+            article.translated_title = translation.title
+            article.translated_summary = translation.summary
+            done += 1
+        await session.commit()
+
+    if done:
+        logger.info("Tarjima to'ldirildi: {} ta maqola", done)
+    return done

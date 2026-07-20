@@ -28,6 +28,8 @@ def test_message_contains_required_parts():
     assert "Qisqa mazmun &amp; tavsif" in text
     assert "Reuters" in text
     assert "Sun&#x27;iy intellekt" in text  # apostrof HTML-escape qilinadi
+    # Havola tugma emas, matn oxirida bo'lishi kerak
+    assert '<a href="https://example.com/news/1">Batafsil o\'qish</a>' in text
     assert "14:30" in text  # 09:30 UTC = 14:30 Tashkent
 
 

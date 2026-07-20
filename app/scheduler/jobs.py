@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.core.config import get_settings
 from app.news.translation.service import BaseTranslator
 from app.services.delivery import deliver_digests, deliver_realtime
-from app.services.pipeline import collect_and_process
+from app.services.pipeline import collect_and_process, translate_missing
 
 
 def setup_scheduler(
@@ -21,6 +21,8 @@ def setup_scheduler(
     async def collect_job() -> None:
         try:
             new_ids = await collect_and_process(session_factory, translator)
+            # Oldingi sikllarda tarjimasiz qolganlarni to'ldiramiz
+            await translate_missing(session_factory, translator)
             if new_ids:
                 await deliver_realtime(bot, session_factory)
         except Exception as exc:
