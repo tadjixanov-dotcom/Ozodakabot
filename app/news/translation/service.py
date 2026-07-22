@@ -105,14 +105,56 @@ _GEMINI_SCHEMA = {
 
 
 class GeminiTranslator(BaseTranslator):
-    """Google Gemini API orqali tarjima + qisqartirish. Xatolikda original matnga qaytadi."""
+    """Google Gemini API orqali tarjima + qisqartirish. Xatolikda original matnga qaytadi.
 
-    _BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+    Sozlangan model 404 qaytarsa (Google eski modellarni o'chiradi), API'dan
+    mavjud modellar ro'yxatini olib, ishlaydigan flash modelni o'zi tanlaydi.
+    """
+
+    _BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
     def __init__(self, api_key: str, model: str) -> None:
         self._api_key = api_key
         self._model = model
+        self._model_verified = False
         self._fallback = NoopTranslator()
+
+    async def _list_models(self, client) -> list[str]:
+        """generateContent qo'llab-quvvatlaydigan modellar ro'yxati."""
+        response = await client.get(
+            f"{self._BASE_URL}/models",
+            headers={"x-goog-api-key": self._api_key},
+            params={"pageSize": 100},
+        )
+        response.raise_for_status()
+        models = []
+        for m in response.json().get("models", []):
+            if "generateContent" in m.get("supportedGenerationMethods", []):
+                models.append(m.get("name", "").removeprefix("models/"))
+        return models
+
+    async def _resolve_model(self, client) -> None:
+        """Sozlangan model ishlamasa, mavjudlaridan eng mosini tanlaydi."""
+        try:
+            available = await self._list_models(client)
+        except Exception as exc:
+            logger.warning("Gemini modellar ro'yxatini olib bo'lmadi: {}", exc)
+            return
+        if not available:
+            return
+        if self._model in available:
+            self._model_verified = True
+            return
+        # Afzallik: stabil flash > preview flash > istalgan gemini modeli
+        def rank(name: str) -> tuple:
+            return ("flash" in name, "preview" not in name and "exp" not in name, name)
+        best = sorted(available, key=rank, reverse=True)[0]
+        logger.warning(
+            "Gemini modeli '{}' mavjud emas — '{}' ishlatiladi. Mavjudlar: {}",
+            self._model, best, ", ".join(available[:10]),
+        )
+        self._model = best
+        self._model_verified = True
 
     async def translate(self, title: str, summary: str) -> TranslationResult:
         import httpx
@@ -132,11 +174,21 @@ class GeminiTranslator(BaseTranslator):
         }
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
+                if not self._model_verified:
+                    await self._resolve_model(client)
                 response = await client.post(
-                    f"{self._BASE_URL}/{self._model}:generateContent",
+                    f"{self._BASE_URL}/models/{self._model}:generateContent",
                     headers={"x-goog-api-key": self._api_key},
                     json=payload,
                 )
+                if response.status_code == 404 and not self._model_verified:
+                    # Model yo'q — ro'yxatdan qayta tanlab bir marta qayta urinamiz
+                    await self._resolve_model(client)
+                    response = await client.post(
+                        f"{self._BASE_URL}/models/{self._model}:generateContent",
+                        headers={"x-goog-api-key": self._api_key},
+                        json=payload,
+                    )
                 response.raise_for_status()
             body = response.json()
             text = body["candidates"][0]["content"]["parts"][0]["text"]
