@@ -30,6 +30,20 @@ def test_message_contains_required_parts():
     assert "Sun&#x27;iy intellekt" in text  # apostrof HTML-escape qilinadi
     # Havola tugma emas, matn oxirida bo'lishi kerak
     assert '<a href="https://example.com/news/1">Batafsil o\'qish</a>' in text
+
+
+def test_original_and_translation_together():
+    """Tarjima bor bo'lsa: tepada inglizcha original, tagida o'zbekchasi."""
+    text = format_article_message(
+        _article(original_summary="Original English summary text."),
+        source_name="Reuters", category_name="AI", category_slug="ai",
+    )
+    orig_pos = text.find("Test &lt;script&gt;")  # original sarlavha (escape qilingan)
+    uz_pos = text.find("🇺🇿")
+    assert orig_pos != -1 and uz_pos != -1
+    assert orig_pos < uz_pos  # original tepada, tarjima tagida
+    assert "Original English summary" in text
+    assert "Sinov sarlavhasi" in text
     assert "14:30" in text  # 09:30 UTC = 14:30 Tashkent
 
 

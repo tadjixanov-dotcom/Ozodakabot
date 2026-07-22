@@ -6,6 +6,7 @@ from html import escape
 from zoneinfo import ZoneInfo
 
 from app.database.models import Article, category_emoji
+from app.news.parsers.cleaner import truncate_text
 
 MAX_MESSAGE_LEN = 3800  # Telegram limiti 4096 — zaxira bilan
 
@@ -30,33 +31,63 @@ def format_article_message(
     tz_name: str = "Asia/Tashkent",
     critical: bool = False,
 ) -> str:
+    """Tarjima bor bo'lsa: tepada original (inglizcha), tagida 🇺🇿 o'zbekcha tarjima."""
     emoji = category_emoji(category_slug)
-    title = escape(article.display_title)
-    summary = escape(article.display_summary)
-
-    parts = []
-    if critical:
-        parts.append("‼️ <b>Muhim global yangilik</b>")
-    parts.append(f"{emoji} <b>{title}</b>")
-    if summary:
-        parts.append(summary)
-    parts.append(
+    header = "‼️ <b>Muhim global yangilik</b>" if critical else ""
+    meta = (
         f"📂 Kategoriya: {escape(category_name)}\n"
         f"📰 Manba: {escape(source_name)}\n"
         f"🕐 E'lon qilingan: {_fmt_time(article.published_at, tz_name)}"
     )
-    if not article.translated_title:
-        parts.append("<i>⚠️ Avtomatik tarjimasiz (original til)</i>")
-    # Havola tugma o'rniga matn oxirida
-    parts.append(f"🔗 <a href=\"{escape(article.url, quote=True)}\">Batafsil o'qish</a>")
+    link = f"🔗 <a href=\"{escape(article.url, quote=True)}\">Batafsil o'qish</a>"
+    orig_title = escape(article.original_title)
 
-    text = "\n\n".join(parts)
-    if len(text) > MAX_MESSAGE_LEN:
-        # Uzun xabar — summary qismini qisqartiramiz
+    def assemble(parts: list[str]) -> str:
+        return "\n\n".join(p for p in parts if p)
+
+    if article.translated_title:
+        uz_title = escape(article.translated_title)
+        uz_summary = escape(article.translated_summary or "")
+        # Original mazmunni sig'guncha qisqartirib boramiz: 350 → 150 → butunlay olib tashlash
+        for orig_limit in (350, 150, None):
+            orig_summary = (
+                escape(truncate_text(article.original_summary or "", orig_limit))
+                if orig_limit else ""
+            )
+            parts = [
+                header,
+                f"{emoji} <b>{orig_title}</b>",
+                orig_summary,
+                f"🇺🇿 <b>{uz_title}</b>",
+                uz_summary,
+                meta,
+                link,
+            ]
+            text = assemble(parts)
+            if len(text) <= MAX_MESSAGE_LEN:
+                return text
+        # Shunda ham uzun — o'zbekcha mazmunni qisqartiramiz
         overflow = len(text) - MAX_MESSAGE_LEN
-        short_summary = summary[: max(0, len(summary) - overflow - 3)] + "…"
-        parts[2 if critical else 1] = short_summary
-        text = "\n\n".join(parts)[:MAX_MESSAGE_LEN]
+        uz_summary = uz_summary[: max(0, len(uz_summary) - overflow - 3)] + "…"
+        return assemble([header, f"{emoji} <b>{orig_title}</b>",
+                         f"🇺🇿 <b>{uz_title}</b>", uz_summary, meta, link])
+
+    # Tarjimasiz variant
+    summary = escape(article.display_summary)
+    parts = [
+        header,
+        f"{emoji} <b>{orig_title}</b>",
+        summary,
+        meta,
+        "<i>⚠️ Avtomatik tarjimasiz (original til)</i>",
+        link,
+    ]
+    text = assemble(parts)
+    if len(text) > MAX_MESSAGE_LEN:
+        overflow = len(text) - MAX_MESSAGE_LEN
+        summary = summary[: max(0, len(summary) - overflow - 3)] + "…"
+        parts[2] = summary
+        text = assemble(parts)[:MAX_MESSAGE_LEN]
     return text
 
 
