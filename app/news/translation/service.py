@@ -182,7 +182,9 @@ class GeminiTranslator(BaseTranslator):
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "responseSchema": _GEMINI_SCHEMA,
-                "maxOutputTokens": 1024,
+                # Yangi flash modellar "thinking" tokenlarini ham shu limitga
+                # kiritadi — kichik limit JSON'ni kesib qo'yadi
+                "maxOutputTokens": 8192,
             },
         }
         try:
@@ -209,7 +211,11 @@ class GeminiTranslator(BaseTranslator):
                         )
                 response.raise_for_status()
             body = response.json()
-            text = body["candidates"][0]["content"]["parts"][0]["text"]
+            candidate = body["candidates"][0]
+            if candidate.get("finishReason") == "MAX_TOKENS":
+                logger.warning("Gemini javobi token limitiga urildi: original matn ishlatiladi")
+                return await self._fallback.translate(title, summary)
+            text = candidate["content"]["parts"][0]["text"]
             data = json.loads(text)
             return TranslationResult(
                 title=str(data["title_uz"]).strip()[:500],
