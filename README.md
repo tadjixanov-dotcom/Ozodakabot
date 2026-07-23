@@ -1,30 +1,30 @@
-# 🌍 Ozodaka News Bot
+﻿# рџЊЌ Ozodaka News Bot
 
 Dunyo yangiliklarini ishonchli xalqaro manbalardan avtomatik yig'ib, tahlil qilib,
 takroriylarni filtrlab, **o'zbek tilida** Telegram orqali yetkazib beruvchi bot.
 
 ## Imkoniyatlar
 
-- 📡 14+ RSS manbadan avtomatik yig'ish (BBC, Al Jazeera, Guardian, Kun.uz, Gazeta.uz, IEEE Spectrum, Defense News va boshqalar)
-- 🗂 6 ta kategoriya: urushlar/geosiyosat, Markaziy Osiyo, robototexnika, mudofaa sanoati, sun'iy intellekt, global siyosat-iqtisod
-- 🔁 Dublikatlarni aniqlash (URL + hash + sarlavha o'xshashligi); bir nechta manbada tasdiqlangan yangilik reytingi oshadi
-- ⭐ Muhimlik darajasini hisoblash (kontent signali + manba ishonchliligi + yangilik + tasdiqlar), clickbait pasaytiriladi
-- 🇺🇿 AI orqali o'zbekchaga tarjima va 2-4 gaplik qisqartirish (Claude API); AIsiz ham to'liq ishlaydi
-- 👍 Baholash tugmalari (👎 😐 👍 🔥 🚫) va shaxsiy **gibrid tavsiya algoritmi** — yoqmagan mavzular kamayadi, favqulodda muhim yangiliklar baribir yetib boradi
-- ⚡ 3 ta rejim: real-time / dayjest / aralash; tungi jim rejim; kunlik limit
-- 🛠 Admin panel: statistika, manbalarni boshqarish, broadcast
-- 🐳 Docker bilan bir buyruqda ishga tushirish
+- рџ“Ў 14+ RSS manbadan avtomatik yig'ish (BBC, Al Jazeera, Guardian, Kun.uz, Gazeta.uz, IEEE Spectrum, Defense News va boshqalar)
+- рџ—‚ 6 ta kategoriya: urushlar/geosiyosat, Markaziy Osiyo, robototexnika, mudofaa sanoati, sun'iy intellekt, global siyosat-iqtisod
+- рџ”Ѓ Dublikatlarni aniqlash (URL + hash + sarlavha o'xshashligi); bir nechta manbada tasdiqlangan yangilik reytingi oshadi
+- в­ђ Muhimlik darajasini hisoblash (kontent signali + manba ishonchliligi + yangilik + tasdiqlar), clickbait pasaytiriladi
+- рџ‡єрџ‡ї AI orqali o'zbekchaga tarjima va 2-4 gaplik qisqartirish (Claude API); AIsiz ham to'liq ishlaydi
+- рџ‘Ќ Baholash tugmalari (рџ‘Ћ рџђ рџ‘Ќ рџ”Ґ рџљ«) va shaxsiy **gibrid tavsiya algoritmi** вЂ” yoqmagan mavzular kamayadi, favqulodda muhim yangiliklar baribir yetib boradi
+- вљЎ 3 ta rejim: real-time / dayjest / aralash; tungi jim rejim; kunlik limit
+- рџ›  Admin panel: statistika, manbalarni boshqarish, broadcast
+- рџђі Docker bilan bir buyruqda ishga tushirish
 
 ## Arxitektura
 
 ```
-RSS manbalar → Kollektor (httpx+feedparser) → Tozalash (BeautifulSoup)
-   → Dedup (hash + o'xshashlik) → Muhimlik balli → AI tarjima (ixtiyoriy)
-   → SQLite/PostgreSQL → Tavsiya algoritmi (foydalanuvchi profili)
-   → Yetkazish (real-time / dayjest, limitlar, retry) → Telegram
+RSS manbalar в†’ Kollektor (httpx+feedparser) в†’ Tozalash (BeautifulSoup)
+   в†’ Dedup (hash + o'xshashlik) в†’ Muhimlik balli в†’ AI tarjima (ixtiyoriy)
+   в†’ SQLite/PostgreSQL в†’ Tavsiya algoritmi (foydalanuvchi profili)
+   в†’ Yetkazish (real-time / dayjest, limitlar, retry) в†’ Telegram
 ```
 
-Yangilik balli: `final_score = importance + interest + freshness + source_score − dislike_similarity_penalty`.
+Yangilik balli: `final_score = importance + interest + freshness + source_score в€’ dislike_similarity_penalty`.
 Foydalanuvchi bahosi profilga yoziladi (kalit so'z og'irliklari), keyingi yangiliklarni
 tanlashda Jaccard o'xshashligi orqali qo'llanadi. 10-15% exploration filter pufagini oldini oladi.
 
@@ -54,7 +54,7 @@ pip install -r requirements.txt
 ### 4. Telegram token olish
 
 1. Telegram'da [@BotFather](https://t.me/BotFather) ga yozing
-2. `/newbot` → bot nomi va username kiriting
+2. `/newbot` в†’ bot nomi va username kiriting
 3. Berilgan tokenni nusxa oling
 
 ### 5. .env faylini to'ldirish
@@ -65,8 +65,8 @@ cp .env.example .env
 ```
 
 `.env` ichida:
-- `BOT_TOKEN=` — BotFather tokeni
-- `ADMIN_IDS=` — sizning Telegram ID'ingiz ([@userinfobot](https://t.me/userinfobot) orqali bilib oling). Bir nechta bo'lsa vergul bilan.
+- `BOT_TOKEN=` вЂ” BotFather tokeni
+- `ADMIN_IDS=` вЂ” sizning Telegram ID'ingiz ([@userinfobot](https://t.me/userinfobot) orqali bilib oling). Bir nechta bo'lsa vergul bilan.
 
 ### 6-7. Ma'lumotlar bazasi va migratsiya
 
@@ -76,7 +76,7 @@ Bot birinchi ishga tushishda jadvallarni o'zi yaratadi. Alembic bilan qilish uch
 alembic upgrade head
 ```
 
-Keyingi sxema o'zgarishlarida: `alembic revision --autogenerate -m "izoh"` → `alembic upgrade head`.
+Keyingi sxema o'zgarishlarida: `alembic revision --autogenerate -m "izoh"` в†’ `alembic upgrade head`.
 
 ### 8. Lokal ishga tushirish
 
@@ -98,11 +98,11 @@ docker compose logs -f bot
 
 **Railway (tavsiya etiladi):**
 
-1. [railway.app](https://railway.app) → New Project → **Deploy from GitHub repo** → shu repozitoriyni tanlang
+1. [railway.app](https://railway.app) в†’ New Project в†’ **Deploy from GitHub repo** в†’ shu repozitoriyni tanlang
 2. Railway `Dockerfile` ni avtomatik topib build qiladi (`railway.json` sozlangan)
-3. **Variables** bo'limida qo'shing: `BOT_TOKEN`, `ADMIN_IDS`, `AI_PROVIDER=gemini`, `AI_API_KEY`, `AI_MODEL=gemini-2.5-flash`
+3. **Variables** bo'limida qo'shing: `BOT_TOKEN`, `ADMIN_IDS`, `AI_PROVIDER=gemini`, `AI_API_KEY`, `AI_MODEL=gemini-flash-latest`
 4. Ma'lumotlar yo'qolmasligi uchun ikkidan birini tanlang:
-   - **PostgreSQL** (tavsiya): projectga "+ New → Database → PostgreSQL" qo'shing, bot servisiga `DATABASE_URL=${{Postgres.DATABASE_URL}}` variable bering (bot `postgres://` URL'ni avtomatik `postgresql+asyncpg://` ga o'giradi)
+   - **PostgreSQL** (tavsiya): projectga "+ New в†’ Database в†’ PostgreSQL" qo'shing, bot servisiga `DATABASE_URL=${{Postgres.DATABASE_URL}}` variable bering (bot `postgres://` URL'ni avtomatik `postgresql+asyncpg://` ga o'giradi)
    - **Volume**: bot servisiga Volume ulang (mount path `/data`) va `DATABASE_URL=sqlite+aiosqlite:////data/news_bot.db` qo'ying
 
 **Oddiy VPS:**
@@ -127,15 +127,15 @@ Kategoriya sluglari: `wars`, `region`, `robotics`, `defense`, `ai`, `global`.
 
 ### 12. AI tarjima ulash
 
-**Gemini (tavsiya etiladi — bepul tarif bor):**
+**Gemini (tavsiya etiladi вЂ” bepul tarif bor):**
 
 ```env
 AI_PROVIDER=gemini
 AI_API_KEY=AIza...
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-flash-latest
 ```
 
-API kaliti: [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — Google
+API kaliti: [aistudio.google.com/apikey](https://aistudio.google.com/apikey) вЂ” Google
 hisobingiz bilan kirib "Create API key" bosing.
 
 **Anthropic Claude (muqobil):**
@@ -147,7 +147,7 @@ AI_MODEL=claude-opus-4-8
 ```
 
 AI o'chirilgan yoki kalit xato bo'lsa bot manbadagi original matnni qisqartirib
-yuboradi — hech narsa buzilmaydi.
+yuboradi вЂ” hech narsa buzilmaydi.
 
 Yangi provayder qo'shish: `app/news/translation/service.py` da `BaseTranslator` dan
 meros oling va `build_translator()` ga ulang.
@@ -171,7 +171,7 @@ callback validatsiyasi.
 ### 15. Muammolarni aniqlash
 
 - Loglar terminalda (`LOG_LEVEL=DEBUG` bilan batafsil) yoki `docker compose logs -f bot`
-- Ishlamayotgan manbalar: botda `/admin` (⚠️ bilan ko'rsatiladi)
+- Ishlamayotgan manbalar: botda `/admin` (вљ пёЏ bilan ko'rsatiladi)
 - Yig'ishni qo'lda tekshirish: `python -m scripts.collect_once`
 - Bot javob bermasa: BOT_TOKEN to'g'riligini va internetni tekshiring
 - `no such table` xatosi: `alembic upgrade head` yoki botni qayta ishga tushiring
@@ -180,14 +180,14 @@ callback validatsiyasi.
 
 ```
 app/
-├── bot/            # aiogram handlerlar, keyboardlar, middleware, filterlar
-├── core/           # config (pydantic), logging (loguru), security
-├── database/       # SQLAlchemy modellar, repositorylar, seed, sessiya
-├── news/           # kollektorlar, tozalash, dedup, tarjima, reyting
-├── recommendations/# profil, scoring, similarity
-├── scheduler/      # APScheduler ishlari
-├── services/       # pipeline, delivery, formatter
-└── main.py         # kirish nuqtasi
+в”њв”Ђв”Ђ bot/            # aiogram handlerlar, keyboardlar, middleware, filterlar
+в”њв”Ђв”Ђ core/           # config (pydantic), logging (loguru), security
+в”њв”Ђв”Ђ database/       # SQLAlchemy modellar, repositorylar, seed, sessiya
+в”њв”Ђв”Ђ news/           # kollektorlar, tozalash, dedup, tarjima, reyting
+в”њв”Ђв”Ђ recommendations/# profil, scoring, similarity
+в”њв”Ђв”Ђ scheduler/      # APScheduler ishlari
+в”њв”Ђв”Ђ services/       # pipeline, delivery, formatter
+в””в”Ђв”Ђ main.py         # kirish nuqtasi
 config/sources.json # manbalar ro'yxati
 alembic/            # migratsiyalar
 tests/              # pytest testlari
@@ -195,5 +195,5 @@ tests/              # pytest testlari
 
 ## Mualliflik huquqi
 
-Bot maqolalarning to'liq matnini nusxalamaydi — faqat sarlavha, qisqa mazmun (2-4 gap)
+Bot maqolalarning to'liq matnini nusxalamaydi вЂ” faqat sarlavha, qisqa mazmun (2-4 gap)
 va **original manbaga havola** yuboriladi. Tarjimada faktlar o'zgartirilmaydi.

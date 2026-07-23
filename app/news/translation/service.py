@@ -117,6 +117,7 @@ class GeminiTranslator(BaseTranslator):
         self._api_key = api_key
         self._model = model
         self._model_verified = False
+        self._failed_models: set[str] = set()
         self._fallback = NoopTranslator()
 
     async def _list_models(self, client) -> list[str]:
@@ -134,23 +135,35 @@ class GeminiTranslator(BaseTranslator):
         return models
 
     async def _resolve_model(self, client) -> None:
-        """Sozlangan model ishlamasa, mavjudlaridan eng mosini tanlaydi."""
+        """Sozlangan model ishlamasa, mavjudlaridan eng mosini tanlaydi.
+
+        Diqqat: ro'yxatda bor model ham generateContent'da 404 qaytarishi mumkin
+        (Google "no longer available to new users" qiladi) — bunday modellar
+        _failed_models'ga tushadi va qayta tanlanmaydi.
+        """
         try:
             available = await self._list_models(client)
         except Exception as exc:
             logger.warning("Gemini modellar ro'yxatini olib bo'lmadi: {}", exc)
             return
+        available = [m for m in available if m not in self._failed_models]
         if not available:
             return
         if self._model in available:
             self._model_verified = True
             return
-        # Afzallik: stabil flash > preview flash > istalgan gemini modeli
+        # Afzallik: flash-latest alias > stabil flash (lite emas) > qolganlari
         def rank(name: str) -> tuple:
-            return ("flash" in name, "preview" not in name and "exp" not in name, name)
+            return (
+                name == "gemini-flash-latest",
+                "flash" in name,
+                "preview" not in name and "exp" not in name,
+                "lite" not in name,
+                name,
+            )
         best = sorted(available, key=rank, reverse=True)[0]
         logger.warning(
-            "Gemini modeli '{}' mavjud emas — '{}' ishlatiladi. Mavjudlar: {}",
+            "Gemini modeli '{}' ishlamayapti — '{}' ishlatiladi. Mavjudlar: {}",
             self._model, best, ", ".join(available[:10]),
         )
         self._model = best
@@ -181,14 +194,19 @@ class GeminiTranslator(BaseTranslator):
                     headers={"x-goog-api-key": self._api_key},
                     json=payload,
                 )
-                if response.status_code == 404 and not self._model_verified:
-                    # Model yo'q — ro'yxatdan qayta tanlab bir marta qayta urinamiz
+                if response.status_code == 404:
+                    # Model 404 — ro'yxatda bo'lsa ham ishlamaydi (yangi
+                    # kalitlar uchun yopilgan bo'lishi mumkin). Qora ro'yxatga
+                    # olib, boshqasini tanlaymiz va bir marta qayta urinamiz.
+                    self._failed_models.add(self._model)
+                    self._model_verified = False
                     await self._resolve_model(client)
-                    response = await client.post(
-                        f"{self._BASE_URL}/models/{self._model}:generateContent",
-                        headers={"x-goog-api-key": self._api_key},
-                        json=payload,
-                    )
+                    if self._model not in self._failed_models:
+                        response = await client.post(
+                            f"{self._BASE_URL}/models/{self._model}:generateContent",
+                            headers={"x-goog-api-key": self._api_key},
+                            json=payload,
+                        )
                 response.raise_for_status()
             body = response.json()
             text = body["candidates"][0]["content"]["parts"][0]["text"]
@@ -214,7 +232,7 @@ def build_translator(settings: Settings | None = None) -> BaseTranslator:
         return AnthropicTranslator(settings.ai_api_key, settings.ai_model)
     if provider == "gemini":
         # Model nomi gemini'ga mos bo'lmasa standartini olamiz
-        model = settings.ai_model if settings.ai_model.startswith("gemini") else "gemini-2.5-flash"
+        model = settings.ai_model if settings.ai_model.startswith("gemini") else "gemini-flash-latest"
         logger.info("AI tarjima yoqildi: gemini / {}", model)
         return GeminiTranslator(settings.ai_api_key, model)
     if provider:
